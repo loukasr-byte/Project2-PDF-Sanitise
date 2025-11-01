@@ -1,0 +1,16 @@
+---------------------------------------------------------------------------
+PDF SANITIZATION REPORT
+Date: 2025-10-31T23:32:42.101487Z
+---------------------------------------------------------------------------
+Document: test_sample.pdf
+Original Size: 681 bytes
+Sanitized Size: 683 bytes
+Processing Time: 279 ms
+
+THREATS DETECTED: 0 total
+
+SANITIZATION STATUS: SUCCESS
+Original Hash (SHA-256): 0130b9382639fa089a38ec5104d6114cea7dda632c2ddce3232574d44b665b8c
+Sanitized Hash (SHA-256): 4563fb7f9bc2d29fc60815ce424a5b54de38c2c0a7410b6ce1c5ad5ccebb99f8
+---------------------------------------------------------------------------
+Operator: pdf_sanitizer_system | Workstation: ROSSIDESL

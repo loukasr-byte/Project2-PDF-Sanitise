@@ -1,0 +1,18 @@
+{
+  "event_id": "STZ-20251031-233228163",
+  "timestamp": "2025-10-31T23:32:28.163363Z",
+  "workstation_id": "ROSSIDESL",
+  "operator": "pdf_sanitizer_system",
+  "classification": "UNCLASSIFIED",
+  "document": {
+    "original_name": "test_sample.pdf",
+    "original_path": "test_sample.pdf",
+    "processing_time_ms": 280,
+    "original_hash_sha256": "0130b9382639fa089a38ec5104d6114cea7dda632c2ddce3232574d44b665b8c",
+    "original_size_bytes": 681
+  },
+  "threats_detected": [],
+  "sanitization_policy": "AGGRESSIVE",
+  "status": "FAILED",
+  "error_message": "Pdf.save() got an unexpected keyword argument 'fix_metadata_dates'"
+}

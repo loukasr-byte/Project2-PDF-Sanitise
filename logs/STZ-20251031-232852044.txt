@@ -1,0 +1,10 @@
+---------------------------------------------------------------------------
+PDF SANITIZATION REPORT
+Date: 2025-10-31T23:28:52.044466Z
+---------------------------------------------------------------------------
+Document: test_sample.pdf
+Original Size: 681 bytes
+Sanitized Size: 0 bytes
+Processing Time: 272 ms
+
+THREATS DETECTED: 0 total

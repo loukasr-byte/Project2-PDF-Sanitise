@@ -1,0 +1,79 @@
+import json
+import sys
+import os
+import logging
+import traceback
+from pathlib import Path
+
+# Setup logging to stderr so it appears in subprocess output
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    stream=sys.stderr
+)
+logger = logging.getLogger(__name__)
+
+def main():
+    """
+    This is the entry point for the sandboxed PDF parsing process.
+    It will receive a PDF file path and output a JSON file with the parsed data.
+    """
+    logger.info("Worker process started.")
+    
+    # Add the parent directory to sys.path so we can import src module
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    logger.info(f"Project root: {project_root}")
+    logger.info(f"sys.path: {sys.path[:3]}")
+    
+    input_file = ""
+    output_dir = ""
+    for i, arg in enumerate(sys.argv):
+        if arg == "--input" and i + 1 < len(sys.argv):
+            input_file = sys.argv[i+1]
+        elif arg == "--output" and i + 1 < len(sys.argv):
+            output_dir = sys.argv[i+1]
+
+    logger.info(f"Input file: {input_file}")
+    logger.info(f"Output dir: {output_dir}")
+
+    if not input_file or not output_dir:
+        logger.error("Usage: python worker_pdf_parser.py --input <path> --output <path>")
+        sys.exit(1)
+
+    # Placeholder for parsing logic
+    try:
+        logger.info("Importing PDFWhitelistParser...")
+        from src.core_engine import PDFWhitelistParser
+        
+        logger.info(f"Parsing PDF: {input_file}")
+        parser = PDFWhitelistParser(input_file)
+        result_data = parser.parse()
+        result_data["status"] = "success"
+
+        output_file = os.path.join(output_dir, "result.json")
+        logger.info(f"Writing result to: {output_file}")
+        with open(output_file, "w") as f:
+            json.dump(result_data, f, indent=2)
+        logger.info("Parse complete, worker exiting successfully")
+        
+    except Exception as e:
+        logger.error(f"Error during parsing: {e}")
+        logger.error(traceback.format_exc())
+        result_data = {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+        output_file = os.path.join(output_dir, "result.json")
+        try:
+            with open(output_file, "w") as f:
+                json.dump(result_data, f, indent=2)
+        except Exception as write_err:
+            logger.error(f"Failed to write error result: {write_err}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

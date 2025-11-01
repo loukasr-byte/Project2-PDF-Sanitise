@@ -1,0 +1,20 @@
+{
+  "event_id": "STZ-20251031-233658928",
+  "timestamp": "2025-10-31T23:36:58.928090Z",
+  "workstation_id": "ROSSIDESL",
+  "operator": "pdf_sanitizer_system",
+  "classification": "UNCLASSIFIED",
+  "document": {
+    "original_name": "test_sample.pdf",
+    "original_path": "test_sample.pdf",
+    "sanitized_path": "test_sample_sanitized.pdf",
+    "processing_time_ms": 275,
+    "original_hash_sha256": "0130b9382639fa089a38ec5104d6114cea7dda632c2ddce3232574d44b665b8c",
+    "original_size_bytes": 681,
+    "sanitized_hash_sha256": "ef063fa7e39ff39a29c16ff1d2641895ad3c65f7230247f002577e6df1c756a1",
+    "sanitized_size_bytes": 683
+  },
+  "threats_detected": [],
+  "sanitization_policy": "AGGRESSIVE",
+  "status": "SUCCESS"
+}
