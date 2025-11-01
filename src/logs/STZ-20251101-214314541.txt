@@ -1,0 +1,16 @@
+---------------------------------------------------------------------------
+PDF SANITIZATION REPORT
+Date: 2025-11-01T21:43:14.541466Z
+---------------------------------------------------------------------------
+Document: FortiAuthenticator Troubleshooting Tech Talk Roundtable - October 29th.pdf
+Original Size: 2152038 bytes
+Sanitized Size: 2055188 bytes
+Processing Time: 456 ms
+
+THREATS DETECTED: 0 total
+
+SANITIZATION STATUS: SUCCESS
+Original Hash (SHA-256): 0859403235fcd7d4e56b88876693e9d809fa8181d77b506a1f52ae0b7a7589b2
+Sanitized Hash (SHA-256): 77fa5a1ca13c3ee2b2e59fe2cd42a0b3b9edd70fef32c510827d7fd6710c21b4
+---------------------------------------------------------------------------
+Operator: pdf_sanitizer_system | Workstation: ROSSIDESL

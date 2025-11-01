@@ -1,0 +1,26 @@
+{
+  "event_id": "STZ-20251101-214127785",
+  "timestamp": "2025-11-01T21:41:27.785382Z",
+  "workstation_id": "ROSSIDESL",
+  "operator": "test_operator",
+  "classification": "TEST",
+  "document": {
+    "original_name": "test.pdf",
+    "original_path": "test_original.pdf",
+    "sanitized_path": "test_sanitized.pdf",
+    "processing_time_ms": 1500,
+    "original_hash_sha256": "bf573149b23303cac63c2a359b53760d919770c5d070047e76de42e2184f1046",
+    "original_size_bytes": 16,
+    "sanitized_hash_sha256": "7d766008b2e7edc5f76b4411cd675364151739ea255dfad0329a721ee4a64281",
+    "sanitized_size_bytes": 17
+  },
+  "threats_detected": [
+    {
+      "type": "TEST_THREAT",
+      "severity": "HIGH",
+      "action": "REMOVED"
+    }
+  ],
+  "sanitization_policy": "AGGRESSIVE",
+  "status": "SUCCESS"
+}

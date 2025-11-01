@@ -20,6 +20,8 @@ python test_e2e.py          # End-to-end test (expect PASSED)
 | `No module named 'pikepdf'` | `pip install pikepdf --upgrade` |
 | GUI won't start | Check display/headless environment |
 | No sanitized file | Check `logs/STZ-*.txt` for errors |
+| Processing PDF from Downloads fails | New fix: app checks permissions + uses fallback location |
+| "Permission denied" error | Sanitized file saved to app directory (shown in success dialog) |
 
 ## 📁 File Locations
 
@@ -78,6 +80,8 @@ python run_gui.py
 ✅ Verified end-to-end pipeline  
 ✅ Verified all components  
 ✅ Created comprehensive documentation  
+✅ Fixed Downloads folder file handling (permission detection + fallback)
+✅ Enhanced success/error messages to show file location
 
 **Result**: Application is now production-ready!
 

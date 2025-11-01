@@ -67,23 +67,54 @@ class QueueManager(QObject):
                 self._handle_error(file_path, error_msg, start_time)
                 return
 
-            # Step 2: Reconstruct PDF
-            logger.info(f"Reconstructing sanitized PDF")
-            try:
-                from src.core_engine import PDFReconstructor
-                reconstructor = PDFReconstructor(result)
-                
-                # Generate output path
+            # Check if output file was created by the worker (new flow)
+            # The worker now handles both parsing and reconstruction
+            output_file = result.get("output_file")
+            if output_file and Path(output_file).exists():
+                logger.info(f"Using sanitized PDF created by worker: {output_file}")
+                output_path = Path(output_file)
+            else:
+                # Fallback: Reconstruct PDF if worker didn't create output file
+                # This should rarely happen with the new worker architecture
+                logger.warning(f"Worker did not provide output file, attempting local reconstruction")
                 input_path = Path(file_path)
                 output_path = input_path.parent / f"{input_path.stem}_sanitized.pdf"
                 
-                logger.info(f"Building sanitized PDF: {output_path}")
-                reconstructor.build(str(output_path))
-            except Exception as e:
-                error_msg = f"Reconstruction exception: {str(e)}"
-                logger.error(error_msg, exc_info=True)
-                self._handle_error(file_path, error_msg, start_time)
-                return
+                # Check if we have write permission to the input directory
+                try:
+                    # Try to create a test file to verify write access
+                    test_file = input_path.parent / ".write_test"
+                    test_file.touch(exist_ok=True)
+                    test_file.unlink()
+                    write_access = True
+                except (PermissionError, OSError):
+                    write_access = False
+                
+                # If no write access, save to app directory
+                if not write_access:
+                    logger.warning(f"No write access to {input_path.parent}, using application directory")
+                    app_dir = Path(__file__).parent.parent
+                    output_path = app_dir / f"{input_path.stem}_sanitized.pdf"
+                
+                # Re-parse and reconstruct locally
+                logger.info(f"Re-parsing and reconstructing PDF locally")
+                try:
+                    from src.core_engine import PDFWhitelistParser, PDFReconstructor
+                    
+                    # Parse the PDF locally
+                    parser = PDFWhitelistParser(file_path)
+                    whitelisted_data = parser.parse()
+                    original_pdf = parser.get_original_pdf()
+                    
+                    # Reconstruct with proper data structure
+                    logger.info(f"Building sanitized PDF: {output_path}")
+                    reconstructor = PDFReconstructor(whitelisted_data, original_pdf)
+                    reconstructor.build(str(output_path))
+                except Exception as e:
+                    error_msg = f"Reconstruction exception: {str(e)}"
+                    logger.error(error_msg, exc_info=True)
+                    self._handle_error(file_path, error_msg, start_time)
+                    return
             
             # Verify output file exists
             if not output_path.exists():
@@ -123,9 +154,13 @@ class QueueManager(QObject):
 
     def _log_success(self, input_file: str, output_file: str, parse_result: dict, processing_time: float):
         """Log successful sanitization to audit logger."""
+        logger.info(f"[QM_LOG_SUCCESS] Starting audit log for successful sanitization")
+        logger.info(f"[QM_LOG_SUCCESS] Input: {input_file}, Output: {output_file}")
+        logger.info(f"[QM_LOG_SUCCESS] Audit logger object: {self.audit_logger}")
         try:
             input_path = Path(input_file)
             output_path = Path(output_file)
+            logger.info(f"[QM_LOG_SUCCESS] Paths converted - input: {input_path}, output: {output_path}")
             
             event_data = {
                 "operator": "pdf_sanitizer_system",
@@ -140,11 +175,12 @@ class QueueManager(QObject):
                 "sanitization_policy": "AGGRESSIVE",
                 "status": "SUCCESS"
             }
+            logger.info(f"[QM_LOG_SUCCESS] Event data prepared, calling audit_logger.log_event()")
             
             self.audit_logger.log_event(event_data)
-            logger.info(f"Audit logged for: {input_path.name}")
+            logger.info(f"[QM_LOG_SUCCESS] Audit logged for: {input_path.name}")
         except Exception as e:
-            logger.error(f"Failed to log audit event: {e}")
+            logger.error(f"[QM_LOG_SUCCESS] Failed to log audit event: {e}", exc_info=True)
 
     def _log_error(self, input_file: str, error_msg: str, processing_time: float):
         """Log processing error to audit logger."""

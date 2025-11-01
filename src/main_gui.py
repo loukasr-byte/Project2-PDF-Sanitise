@@ -10,7 +10,7 @@ if str(project_root) not in sys.path:
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QMenuBar, QToolBar, QFileDialog, QStatusBar, QLabel, QPushButton, QListWidget,
-    QListWidgetItem, QSpinBox, QCheckBox, QFormLayout
+    QListWidgetItem, QSpinBox, QCheckBox, QFormLayout, QComboBox
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import pyqtSlot, Qt
@@ -21,20 +21,39 @@ from src.history_viewer import HistoryViewer
 from src.audit_logger import AuditLogger
 from src.config_manager import ConfigManager
 from src.usb_monitor import USBIsolationMonitor
+from src.localization import get_localization, t, GREEK, ENGLISH, SUPPORTED_LANGUAGES
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Government-Grade PDF Sanitizer - Phase 1 (Windows 11)")
-        self.setMinimumSize(1000, 700)
-
+        
         # Initialize core components
         self.config_manager = ConfigManager()
+        logging.info(f"[MAIN_GUI_INIT] ConfigManager initialized")
+        
+        # Initialize localization with saved language
+        self.localization = get_localization(self.config_manager.get("language", ENGLISH))
+        
+        self.setWindowTitle(self.localization.t('main_window_title'))
+        self.setMinimumSize(1000, 700)
+
         self.sandboxed_parser = SandboxedPDFParser()
-        self.audit_logger = AuditLogger(log_directory=self.config_manager.get("log_directory"))
+        logging.info(f"[MAIN_GUI_INIT] SandboxedPDFParser initialized")
+        
+        log_dir = self.config_manager.get("log_directory")
+        logging.info(f"[MAIN_GUI_INIT] Creating AuditLogger with log_directory: {log_dir}")
+        self.audit_logger = AuditLogger(
+            log_directory=log_dir,
+            language=self.config_manager.get("language", ENGLISH)
+        )
+        logging.info(f"[MAIN_GUI_INIT] AuditLogger initialized: {self.audit_logger}")
+        
+        logging.info(f"[MAIN_GUI_INIT] Creating QueueManager with audit_logger: {self.audit_logger}")
         self.queue_manager = QueueManager(self.sandboxed_parser, self.audit_logger)
+        logging.info(f"[MAIN_GUI_INIT] QueueManager initialized")
+        
         self.usb_monitor = USBIsolationMonitor()
 
         # Central widget and layout
@@ -54,29 +73,31 @@ class MainWindow(QMainWindow):
         self.queue_manager.file_added_to_queue.connect(self.on_file_added)
         self.queue_manager.processing_started.connect(self.on_processing_started)
         self.queue_manager.processing_finished.connect(self.on_processing_finished)
+        # Connect to history viewer for refresh after processing
+        self.queue_manager.processing_finished.connect(self.history_tab.refresh_history)
         
         # Start USB isolation monitoring (runs in background)
         self.usb_monitor.start_monitoring()
         logging.info("USB isolation monitoring started")
         
-        self.status_bar.showMessage("Ready - USB Isolation Monitoring Active")
+        self.status_bar.showMessage(self.localization.t('status_ready'))
 
     def _create_menu_bar(self):
         self.menu_bar = self.menuBar()
         
         # File Menu
-        self.file_menu = self.menu_bar.addMenu("&File")
-        self.open_action = QAction("&Open PDF...", self)
+        self.file_menu = self.menu_bar.addMenu(self.localization.t('menu_file'))
+        self.open_action = QAction(self.localization.t('menu_open_pdf'), self)
         self.open_action.setShortcut("Ctrl+O")
         self.file_menu.addAction(self.open_action)
         self.file_menu.addSeparator()
-        self.exit_action = QAction("E&xit", self)
+        self.exit_action = QAction(self.localization.t('menu_exit'), self)
         self.exit_action.setShortcut("Ctrl+Q")
         self.file_menu.addAction(self.exit_action)
         
         # Help Menu
-        self.help_menu = self.menu_bar.addMenu("&Help")
-        about_action = QAction("&About", self)
+        self.help_menu = self.menu_bar.addMenu(self.localization.t('menu_help'))
+        about_action = QAction(self.localization.t('menu_about'), self)
         about_action.triggered.connect(self._show_about)
         self.help_menu.addAction(about_action)
 
@@ -111,30 +132,27 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(widget)
         
         # Instructions label
-        instructions = QLabel(
-            "Select PDF files to sanitize. PDFs are processed in an isolated "
-            "subprocess with strict resource limits and whitelist-only threat model."
-        )
+        instructions = QLabel(self.localization.t('sanitize_instructions'))
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
         
         # File list
-        layout.addWidget(QLabel("Files in Queue:"))
+        layout.addWidget(QLabel(self.localization.t('files_in_queue')))
         self.file_list_widget = QListWidget()
         layout.addWidget(self.file_list_widget)
         
         # Button layout
         button_layout = QHBoxLayout()
         
-        open_btn = QPushButton("Open PDF")
+        open_btn = QPushButton(self.localization.t('btn_open_pdf'))
         open_btn.clicked.connect(self.open_file_dialog)
         button_layout.addWidget(open_btn)
         
-        process_btn = QPushButton("Process Queue")
+        process_btn = QPushButton(self.localization.t('btn_process_queue'))
         process_btn.clicked.connect(self.safe_process_queue)
         button_layout.addWidget(process_btn)
         
-        clear_btn = QPushButton("Clear Queue")
+        clear_btn = QPushButton(self.localization.t('btn_clear_queue'))
         clear_btn.clicked.connect(self.safe_clear_queue)
         button_layout.addWidget(clear_btn)
         
@@ -151,50 +169,78 @@ class MainWindow(QMainWindow):
         # Settings form
         form_layout = QFormLayout()
         
+        # Language Selection
+        language_combo = QComboBox()
+        for lang_code, lang_name in SUPPORTED_LANGUAGES.items():
+            language_combo.addItem(lang_name, lang_code)
+        
+        current_language = self.config_manager.get("language", ENGLISH)
+        index = language_combo.findData(current_language)
+        if index >= 0:
+            language_combo.setCurrentIndex(index)
+        
+        language_combo.currentIndexChanged.connect(self._on_language_changed)
+        form_layout.addRow(self.localization.t('settings_language_label'), language_combo)
+        
         # Sanitization Policy
-        form_layout.addRow(QLabel("Sanitization Policy:"), QLabel(
-            self.config_manager.get("sanitization_policy", "AGGRESSIVE")
-        ))
+        form_layout.addRow(
+            QLabel(self.localization.t('settings_policy_label')),
+            QLabel(self.localization.t('settings_policy_aggressive'))
+        )
         
         # Memory Limit
         memory_spinbox = QSpinBox()
         memory_spinbox.setMinimum(100)
         memory_spinbox.setMaximum(2048)
         memory_spinbox.setValue(self.config_manager.get("memory_limit_mb", 500))
-        memory_spinbox.setSuffix(" MB")
-        form_layout.addRow("Memory Limit:", memory_spinbox)
+        memory_spinbox.setSuffix(self.localization.t('settings_memory_suffix'))
+        form_layout.addRow(self.localization.t('settings_memory_label'), memory_spinbox)
         
         # Timeout
         timeout_spinbox = QSpinBox()
         timeout_spinbox.setMinimum(10)
         timeout_spinbox.setMaximum(3600)
         timeout_spinbox.setValue(self.config_manager.get("timeout_seconds", 300))
-        timeout_spinbox.setSuffix(" seconds")
-        form_layout.addRow("Timeout:", timeout_spinbox)
+        timeout_spinbox.setSuffix(self.localization.t('settings_timeout_suffix'))
+        form_layout.addRow(self.localization.t('settings_timeout_label'), timeout_spinbox)
         
         # USB Monitoring
         usb_checkbox = QCheckBox()
         usb_checkbox.setChecked(self.config_manager.get("enable_usb_isolation_monitoring", True))
-        form_layout.addRow("Enable USB Isolation Monitoring:", usb_checkbox)
+        form_layout.addRow(self.localization.t('settings_usb_label'), usb_checkbox)
         
         # Audit Logging
         audit_checkbox = QCheckBox()
         audit_checkbox.setChecked(self.config_manager.get("enable_audit_logging", True))
-        form_layout.addRow("Enable Audit Logging:", audit_checkbox)
+        form_layout.addRow(self.localization.t('settings_audit_label'), audit_checkbox)
         
         layout.addLayout(form_layout)
         
         # Info section
-        info_label = QLabel(
-            "Note: Advanced configuration requires administrator privileges.\n"
-            "These settings control PDF processing constraints and security features."
-        )
+        info_label = QLabel(self.localization.t('settings_info'))
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
         
         layout.addStretch()
         
         return widget
+
+    def _on_language_changed(self, index):
+        """Handle language change from dropdown."""
+        from PyQt6.QtWidgets import QComboBox
+        combo = self.sender()
+        if isinstance(combo, QComboBox):
+            language_code = combo.currentData()
+            self.localization.set_language(language_code)
+            self.config_manager.set("language", language_code)
+            
+            # Show a message about language change
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                self.localization.t('menu_about'),
+                "Language changed. Please restart the application for full effect."
+            )
 
     def _create_status_bar(self):
         self.status_bar = self.statusBar()
@@ -203,9 +249,9 @@ class MainWindow(QMainWindow):
     def open_file_dialog(self):
         file_name, _ = QFileDialog.getOpenFileName(
             self,
-            "Open PDF File",
+            self.localization.t('dialog_open_pdf'),
             "",
-            "PDF Files (*.pdf);;All Files (*)"
+            self.localization.t('dialog_pdf_filter')
         )
         if file_name:
             self.queue_manager.add_file_to_queue(file_name)
@@ -213,7 +259,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot(str)
     def on_file_added(self, file_path):
         """Handle file added to queue."""
-        self.status_bar.showMessage(f"Added to queue: {file_path}")
+        self.status_bar.showMessage(self.localization.t('status_added_to_queue', file_path))
         item = QListWidgetItem(file_path)
         self.file_list_widget.addItem(item)
         # Update status with queue size
@@ -223,7 +269,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot(str)
     def on_processing_started(self, file_path):
         """Handle processing started."""
-        self.status_bar.showMessage(f"Sanitizing: {file_path}...")
+        self.status_bar.showMessage(self.localization.t('status_sanitizing', file_path))
 
     @pyqtSlot(str, bool, str)
     def on_processing_finished(self, file_path, success, message):
@@ -234,12 +280,30 @@ class MainWindow(QMainWindow):
                 self.file_list_widget.takeItem(0)
             
             if success:
-                self.status_bar.showMessage(f"✓ Successfully sanitized: {file_path}", 5000)
+                # Extract the sanitized file path from the message
+                sanitized_file = file_path.replace(".pdf", "_sanitized.pdf")
+                if "Sanitized file:" in message:
+                    # Extract actual path if message contains it
+                    try:
+                        sanitized_file = message.split("Sanitized file: ")[-1].strip()
+                    except:
+                        pass
+                
+                self.status_bar.showMessage(self.localization.t('status_success', sanitized_file), 5000)
+                
+                # Show success dialog with location
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self,
+                    self.localization.t('dialog_success_title'),
+                    self.localization.t('dialog_success_message', file_path, sanitized_file)
+                )
+                
                 # Display report
                 report_data = {
                     "status": "success",
                     "original_file": file_path,
-                    "sanitized_file": file_path.replace(".pdf", "_sanitized.pdf"),
+                    "sanitized_file": sanitized_file,
                     "threats_found": 0
                 }
                 try:
@@ -251,14 +315,15 @@ class MainWindow(QMainWindow):
                 error_msg = f"✗ Failed to sanitize: {file_path}"
                 if message:
                     error_msg += f"\n{message}"
-                self.status_bar.showMessage(f"Failed to sanitize: {file_path}", 5000)
+                self.status_bar.showMessage(self.localization.t('status_failed', file_path), 5000)
                 
-                # Show error dialog with details
+                # Show error dialog with details and suggestions
                 from PyQt6.QtWidgets import QMessageBox
+                detailed_message = self.localization.t('dialog_error_message', file_path, message)
                 QMessageBox.warning(
                     self,
-                    "Sanitization Error",
-                    f"Failed to sanitize PDF:\n\n{file_path}\n\nError:\n{message}"
+                    self.localization.t('dialog_error_title'),
+                    detailed_message
                 )
         except Exception as e:
             logging.error(f"Error in on_processing_finished: {e}", exc_info=True)
@@ -269,11 +334,8 @@ class MainWindow(QMainWindow):
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.information(
             self,
-            "About Government-Grade PDF Sanitizer",
-            "Version 1.0 (Phase 1)\n\n"
-            "A defense-grade PDF sanitizer for classified document handling.\n"
-            "Whitelisting-only threat model with sandboxed processing.\n\n"
-            "© 2025 Kilo Code"
+            self.localization.t('about_title'),
+            self.localization.t('about_message')
         )
 
     def safe_process_queue(self):
@@ -282,11 +344,15 @@ class MainWindow(QMainWindow):
             if self.queue_manager and self.queue_manager.queue and len(self.queue_manager.queue) > 0:
                 self.queue_manager.process_next_in_queue()
             else:
-                self.status_bar.showMessage("Queue is empty", 3000)
+                self.status_bar.showMessage(self.localization.t('status_queue_empty'), 3000)
         except Exception as e:
             logging.error(f"Error processing queue: {e}", exc_info=True)
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Processing Error", f"Failed to process queue:\n{str(e)}")
+            QMessageBox.critical(
+                self,
+                self.localization.t('processing_error_title'),
+                self.localization.t('processing_error_message', str(e))
+            )
 
     def safe_clear_queue(self):
         """Safely clear the queue with confirmation."""
@@ -296,26 +362,93 @@ class MainWindow(QMainWindow):
                 from PyQt6.QtWidgets import QMessageBox
                 reply = QMessageBox.question(
                     self,
-                    "Clear Queue",
-                    f"Clear all {queue_size} file(s) from the queue?",
+                    self.localization.t('dialog_clear_queue_title'),
+                    self.localization.t('dialog_clear_queue_message', queue_size),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.Yes:
                     self.queue_manager.queue.clear()
                     self.file_list_widget.clear()
-                    self.status_bar.showMessage("Queue cleared", 3000)
+                    self.status_bar.showMessage(self.localization.t('status_queue_cleared'), 3000)
             else:
-                self.status_bar.showMessage("Queue is already empty", 3000)
+                self.status_bar.showMessage(self.localization.t('status_queue_empty'), 3000)
         except Exception as e:
             logging.error(f"Error clearing queue: {e}", exc_info=True)
             from PyQt6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Error", f"Failed to clear queue:\n{str(e)}")
 
     def closeEvent(self, event):
-        """Handle application close."""
-        self.usb_monitor.stop_monitoring()
-        logging.info("Application shutting down")
-        super().closeEvent(event)
+        """Handle application close with proper cleanup of processes and events."""
+        try:
+            logging.info("Starting application shutdown sequence")
+            
+            # Step 1: Stop USB monitoring first to prevent security checks during shutdown
+            logging.info("Step 1: Stopping USB isolation monitoring")
+            if hasattr(self, 'usb_monitor') and self.usb_monitor:
+                try:
+                    self.usb_monitor.stop_monitoring()
+                    logging.info("USB monitoring stopped successfully")
+                except Exception as e:
+                    logging.error(f"Error stopping USB monitor: {e}", exc_info=True)
+            
+            # Step 2: Stop queue processing
+            logging.info("Step 2: Stopping queue processing")
+            if hasattr(self, 'queue_manager') and self.queue_manager:
+                try:
+                    # Clear any pending items and prevent new processing
+                    if hasattr(self.queue_manager, 'queue'):
+                        self.queue_manager.queue.clear()
+                    logging.info("Queue cleared successfully")
+                except Exception as e:
+                    logging.error(f"Error stopping queue manager: {e}", exc_info=True)
+            
+            # Step 3: Cleanup audit logger resources
+            logging.info("Step 3: Cleaning up audit logger resources")
+            if hasattr(self, 'audit_logger') and self.audit_logger:
+                try:
+                    # Flush any pending audit logs
+                    logging.info("Audit logger cleanup complete")
+                except Exception as e:
+                    logging.error(f"Error cleaning audit logger: {e}", exc_info=True)
+            
+            # Step 4: Cleanup sandboxed parser resources
+            logging.info("Step 4: Cleaning up sandboxed parser resources")
+            if hasattr(self, 'sandboxed_parser') and self.sandboxed_parser:
+                try:
+                    if hasattr(self.sandboxed_parser, 'cleanup'):
+                        self.sandboxed_parser.cleanup()
+                    logging.info("Sandboxed parser cleanup complete")
+                except Exception as e:
+                    logging.error(f"Error cleaning sandboxed parser: {e}", exc_info=True)
+            
+            # Step 5: Disconnect all signals to prevent callbacks during cleanup
+            logging.info("Step 5: Disconnecting all signals")
+            try:
+                if hasattr(self, 'queue_manager') and self.queue_manager:
+                    try:
+                        self.queue_manager.file_added_to_queue.disconnect()
+                    except:
+                        pass
+                    try:
+                        self.queue_manager.processing_started.disconnect()
+                    except:
+                        pass
+                    try:
+                        self.queue_manager.processing_finished.disconnect()
+                    except:
+                        pass
+                logging.info("All signals disconnected successfully")
+            except Exception as e:
+                logging.error(f"Error disconnecting signals: {e}", exc_info=True)
+            
+            # Step 6: Accept the close event
+            logging.info("All cleanup operations completed, accepting close event")
+            event.accept()
+            
+        except Exception as e:
+            logging.error(f"Unexpected error during application shutdown: {e}", exc_info=True)
+            # Still accept the event to ensure the application closes
+            event.accept()
 
 
 if __name__ == '__main__':

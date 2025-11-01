@@ -1,0 +1,20 @@
+{
+  "event_id": "STZ-20251101-214314541",
+  "timestamp": "2025-11-01T21:43:14.541466Z",
+  "workstation_id": "ROSSIDESL",
+  "operator": "pdf_sanitizer_system",
+  "classification": "UNCLASSIFIED",
+  "document": {
+    "original_name": "FortiAuthenticator Troubleshooting Tech Talk Roundtable - October 29th.pdf",
+    "original_path": "C:\\KiloCode\\Projects\\Project2-PDF Sanitise\\tests\\FortiAuthenticator Troubleshooting Tech Talk Roundtable - October 29th.pdf",
+    "sanitized_path": "C:\\KiloCode\\Projects\\Project2-PDF Sanitise\\tests\\FortiAuthenticator Troubleshooting Tech Talk Roundtable - October 29th_sanitized.pdf",
+    "processing_time_ms": 456,
+    "original_hash_sha256": "0859403235fcd7d4e56b88876693e9d809fa8181d77b506a1f52ae0b7a7589b2",
+    "original_size_bytes": 2152038,
+    "sanitized_hash_sha256": "77fa5a1ca13c3ee2b2e59fe2cd42a0b3b9edd70fef32c510827d7fd6710c21b4",
+    "sanitized_size_bytes": 2055188
+  },
+  "threats_detected": [],
+  "sanitization_policy": "AGGRESSIVE",
+  "status": "SUCCESS"
+}

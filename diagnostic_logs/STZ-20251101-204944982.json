@@ -1,0 +1,26 @@
+{
+  "event_id": "STZ-20251101-204944982",
+  "timestamp": "2025-11-01T20:49:44.982176Z",
+  "workstation_id": "ROSSIDESL",
+  "operator": "diagnostic_test",
+  "classification": "TEST",
+  "document": {
+    "original_name": "test_document.pdf",
+    "original_path": "c:\\KiloCode\\Projects\\Project2-PDF Sanitise\\diagnostic_original.pdf",
+    "sanitized_path": "c:\\KiloCode\\Projects\\Project2-PDF Sanitise\\diagnostic_sanitized.pdf",
+    "processing_time_ms": 1500,
+    "original_hash_sha256": "88198288aeea659c8757b8dccaad7d32b9bc9117712f3d7bc04f59f3cb4f2df5",
+    "original_size_bytes": 3000,
+    "sanitized_hash_sha256": "7d766008b2e7edc5f76b4411cd675364151739ea255dfad0329a721ee4a64281",
+    "sanitized_size_bytes": 17
+  },
+  "threats_detected": [
+    {
+      "type": "TEST_THREAT",
+      "severity": "INFO",
+      "action": "LOGGED"
+    }
+  ],
+  "sanitization_policy": "AGGRESSIVE",
+  "status": "SUCCESS"
+}

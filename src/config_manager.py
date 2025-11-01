@@ -26,7 +26,8 @@ DEFAULT_CONFIG = {
     "enable_usb_isolation_monitoring": True,
     "enable_audit_logging": True,
     "quarantine_directory": r"C:\PDFSanitizer\Quarantine",
-    "log_directory": r"C:\PDFSanitizer\Logs",
+    "log_directory": "logs",
+    "language": "en",
 }
 
 

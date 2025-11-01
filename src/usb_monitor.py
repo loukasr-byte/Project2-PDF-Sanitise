@@ -41,11 +41,34 @@ class USBIsolationMonitor:
         self.monitor_thread.start()
     
     def stop_monitoring(self):
-        if self.wmi_watcher:
-            self.wmi_watcher.stop()
-        if self.monitor_thread and self.monitor_thread.is_alive():
-            # WMI watcher stop should unblock the thread
-            self.monitor_thread.join(timeout=2.0)
+        """Stop monitoring thread and cleanup WMI resources."""
+        try:
+            logging.info("Stopping USB isolation monitoring")
+            
+            # Set flag to stop the monitoring loop
+            self.compromised = True
+            
+            # Stop the WMI watcher
+            if self.wmi_watcher:
+                try:
+                    self.wmi_watcher.stop()
+                    logging.info("WMI watcher stopped successfully")
+                except Exception as e:
+                    logging.error(f"Error stopping WMI watcher: {e}")
+            
+            # Wait for monitor thread to finish with timeout
+            if self.monitor_thread and self.monitor_thread.is_alive():
+                logging.info("Waiting for monitor thread to terminate")
+                self.monitor_thread.join(timeout=2.0)
+                
+                if self.monitor_thread.is_alive():
+                    logging.warning("Monitor thread did not terminate within timeout (daemon=True, will exit with app)")
+                else:
+                    logging.info("Monitor thread terminated successfully")
+            
+            logging.info("USB isolation monitoring stopped and cleanup complete")
+        except Exception as e:
+            logging.error(f"Error during stop_monitoring cleanup: {e}", exc_info=True)
 
     def _monitor_loop(self):
         """

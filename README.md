@@ -48,6 +48,7 @@ python src/main_gui.py
 - **USB Isolation Monitoring**: Detects and logs USB device connections
 - **Windows Integration**: Uses pywin32 for Job Objects and registry storage
 - **Hash Verification**: SHA-256 hashing of original vs sanitized files
+- **Greek Language Support**: Full UI localization in English and Greek (Ελληνικά)
 
 ### Workflow
 
@@ -74,6 +75,19 @@ python src/main_gui.py
    - Sanitized PDFs: Same directory as originals, `[name]_sanitized.pdf`
    - Audit Logs: `logs/STZ-[timestamp].json` and `.txt`
 
+### Language Support
+
+The application supports multiple languages including:
+- **English** (en) - Default
+- **Greek** (Ελληνικά) (el) - Full localization
+
+**To change language:**
+1. Open Settings tab
+2. Select desired language from dropdown
+3. Restart application for full effect
+
+For detailed information, see [`GREEK_LANGUAGE_SUPPORT.md`](GREEK_LANGUAGE_SUPPORT.md)
+
 ### Directory Structure
 
 ```
@@ -86,6 +100,7 @@ Project2-PDF Sanitise/
 │   ├── queue_manager.py      # File queue orchestration
 │   ├── audit_logger.py       # Dual-format logging
 │   ├── config_manager.py     # Windows registry config
+│   ├── localization.py       # Multi-language support
 │   ├── history_viewer.py     # GUI history display
 │   ├── report_viewer.py      # GUI reports display
 │   ├── usb_monitor.py        # USB isolation monitoring
@@ -140,6 +155,15 @@ python tests/test_sandboxing.py
 ✓ Comprehensive audit trails  
 ✓ USB isolation monitoring  
 ✓ Windows process isolation with Job Objects  
+
+### Recent Additions (v1.2)
+
+- ✅ Greek language support (Ελληνικά) with full UI localization
+- ✅ Language selector in Settings tab
+- ✅ Multi-language audit logging with UTF-8 support
+- ✅ Comprehensive localization module with 35+ translation keys
+- ✅ Language preference persistence through configuration
+- ✅ Complete test suite for localization (9 tests, all passing)
 
 ### Recent Fixes (v1.1)
 
